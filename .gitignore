@@ -1,0 +1,38 @@
+# planning docs (not part of the repo)
+*.md
+!README.md
+!readme.md
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+
+# testing / linting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# mlflow local data
+mlruns/
+mlflow.db
+
+# ide
+.vscode/
+.idea/
+
+# os
+.DS_Store
+
+# env files
+.env
+.env.*
+
+# model artifacts (too large for git)
+models/*.pkl
