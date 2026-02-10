@@ -6,6 +6,10 @@ on:
     types: [completed]
     branches: [main]
 
+env:
+  IMAGE: ghcr.io/jack-dolan/mlops-model-platform
+  TAG: ${{ github.event.workflow_run.head_sha }}
+
 jobs:
   deploy-staging:
     runs-on: self-hosted
@@ -14,13 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set PATH
+        run: echo "/opt/homebrew/bin:/usr/local/bin" >> $GITHUB_PATH
+
       - name: Deploy to staging
         run: |
-          cd kubernetes/overlays/staging
-          kustomize edit set image ghcr.io/jack-dolan/mlops-model-platform=ghcr.io/jack-dolan/mlops-model-platform:${{ github.event.workflow_run.head_sha }}
-          kubectl apply -k .
+          kubectl apply -k kubernetes/overlays/staging
+          kubectl set image deployment/model-service model-service=${{ env.IMAGE }}:${{ env.TAG }} -n staging
           kubectl rollout status deployment/model-service -n staging --timeout=300s
-          git checkout -- .
 
       - name: Verify deployment
         run: |
@@ -35,13 +40,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set PATH
+        run: echo "/opt/homebrew/bin:/usr/local/bin" >> $GITHUB_PATH
+
       - name: Deploy to production
         run: |
-          cd kubernetes/overlays/production
-          kustomize edit set image ghcr.io/jack-dolan/mlops-model-platform=ghcr.io/jack-dolan/mlops-model-platform:${{ github.event.workflow_run.head_sha }}
-          kubectl apply -k .
+          kubectl apply -k kubernetes/overlays/production
+          kubectl set image deployment/model-service model-service=${{ env.IMAGE }}:${{ env.TAG }} -n production
           kubectl rollout status deployment/model-service -n production --timeout=300s
-          git checkout -- .
 
       - name: Verify deployment
         run: |
