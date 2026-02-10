@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-staging:
+    runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          cd kubernetes/overlays/staging
+          kubectl apply -k .
+          kubectl rollout status deployment/model-service -n staging --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          kubectl wait --for=condition=ready pod -l app=model-service -n staging --timeout=120s
+          kubectl exec -n staging deploy/model-service -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
+
+  deploy-production:
+    runs-on: self-hosted
+    needs: deploy-staging
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          cd kubernetes/overlays/production
+          kubectl apply -k .
+          kubectl rollout status deployment/model-service -n production --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          kubectl wait --for=condition=ready pod -l app=model-service -n production --timeout=120s
+          kubectl exec -n production deploy/model-service -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
