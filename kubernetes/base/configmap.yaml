@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-config
+data:
+  LOG_LEVEL: "INFO"
+  MLFLOW_TRACKING_URI: "http://mlflow:5000"
+  MLFLOW_MODEL_NAME: "iris-classifier"
+  MLFLOW_MODEL_STAGE: "Production"
