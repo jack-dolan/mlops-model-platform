@@ -15,4 +15,6 @@ data:
         service: http://model-service.staging.svc.cluster.local:80
       - hostname: mlops-mlflow.dolanjack.com
         service: http://mlflow.staging.svc.cluster.local:5000
+      - hostname: mlops-grafana.dolanjack.com
+        service: http://monitoring-grafana.monitoring.svc.cluster.local:80
       - service: http_status:404
