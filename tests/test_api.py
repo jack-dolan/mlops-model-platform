@@ -72,6 +72,13 @@ def test_predict_invalid_json(client: TestClient):
     assert response.status_code == 422
 
 
+def test_metrics_endpoint(client: TestClient):
+    """Prometheus metrics endpoint should return metrics."""
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "http_request" in response.text
+
+
 def test_openapi_docs(client: TestClient):
     """OpenAPI docs should be accessible."""
     response = client.get("/openapi.json")

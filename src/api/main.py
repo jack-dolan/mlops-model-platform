@@ -1,7 +1,9 @@
 """FastAPI application for model serving."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 
@@ -15,13 +17,12 @@ from src.api.schemas import (
 from src.models.iris_classifier import IrisClassifier
 from src.monitoring.metrics import setup_metrics
 
-
 # global model instance
 model: IrisClassifier | None = None
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Load model on startup."""
     global model
 
@@ -50,13 +51,13 @@ setup_metrics(app)
 
 
 @app.get("/health", response_model=HealthResponse)
-async def health():
+async def health() -> dict[str, str]:
     """Liveness probe - is the service running?"""
     return {"status": "healthy"}
 
 
 @app.get("/ready", response_model=ReadyResponse)
-async def ready():
+async def ready() -> dict[str, Any]:
     """Readiness probe - is the service ready to serve traffic?"""
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
@@ -64,7 +65,7 @@ async def ready():
 
 
 @app.post("/predict", response_model=PredictResponse)
-async def predict(request: PredictRequest):
+async def predict(request: PredictRequest) -> dict[str, Any]:
     """Run inference on input features."""
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
@@ -73,13 +74,13 @@ async def predict(request: PredictRequest):
         result = model.predict(request.features)
         return result
     except KeyError as e:
-        raise HTTPException(status_code=400, detail=f"Missing feature: {e}")
+        raise HTTPException(status_code=400, detail=f"Missing feature: {e}") from None
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @app.get("/model/info", response_model=ModelInfoResponse)
-async def model_info():
+async def model_info() -> dict[str, Any]:
     """Get model metadata."""
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")

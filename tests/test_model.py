@@ -1,7 +1,5 @@
 """Tests for the Iris classifier."""
 
-from pathlib import Path
-
 import pytest
 
 from src.models.iris_classifier import IrisClassifier
