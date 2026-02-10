@@ -17,8 +17,10 @@ jobs:
       - name: Deploy to staging
         run: |
           cd kubernetes/overlays/staging
+          kustomize edit set image ghcr.io/jack-dolan/mlops-model-platform=ghcr.io/jack-dolan/mlops-model-platform:${{ github.event.workflow_run.head_sha }}
           kubectl apply -k .
           kubectl rollout status deployment/model-service -n staging --timeout=300s
+          git checkout -- .
 
       - name: Verify deployment
         run: |
@@ -36,8 +38,10 @@ jobs:
       - name: Deploy to production
         run: |
           cd kubernetes/overlays/production
+          kustomize edit set image ghcr.io/jack-dolan/mlops-model-platform=ghcr.io/jack-dolan/mlops-model-platform:${{ github.event.workflow_run.head_sha }}
           kubectl apply -k .
           kubectl rollout status deployment/model-service -n production --timeout=300s
+          git checkout -- .
 
       - name: Verify deployment
         run: |
