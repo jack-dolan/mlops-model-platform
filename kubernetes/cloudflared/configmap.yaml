@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: production
+data:
+  config.yml: |
+    tunnel: 40d6b0b0-dff9-42b9-9dc8-cacfca15d086
+    credentials-file: /etc/cloudflared/creds/credentials.json
+
+    ingress:
+      - hostname: mlops-api.dolanjack.com
+        service: http://model-service.production.svc.cluster.local:80
+      - hostname: mlops-mlflow.dolanjack.com
+        service: http://mlflow.staging.svc.cluster.local:5000
+      - service: http_status:404
