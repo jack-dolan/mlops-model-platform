@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 
 from src.models.interface import ModelInterface
+from src.monitoring.metrics import INFERENCE_TIME, PREDICTION_COUNTER
 
 
 class IrisClassifier(ModelInterface):
@@ -35,13 +36,19 @@ class IrisClassifier(ModelInterface):
         start = time.perf_counter()
         proba = self.model.predict_proba(X)[0]
         pred_idx = np.argmax(proba)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+        elapsed = time.perf_counter() - start
+
+        predicted_class = self.target_names[pred_idx]
+
+        # record prometheus metrics
+        INFERENCE_TIME.observe(elapsed)
+        PREDICTION_COUNTER.labels(predicted_class=predicted_class).inc()
 
         return {
-            "prediction": self.target_names[pred_idx],
+            "prediction": predicted_class,
             "confidence": float(proba[pred_idx]),
             "model_version": self.version,
-            "inference_time_ms": round(elapsed_ms, 3),
+            "inference_time_ms": round(elapsed * 1000, 3),
         }
 
     def get_model_info(self) -> dict[str, Any]:

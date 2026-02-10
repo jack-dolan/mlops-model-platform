@@ -13,6 +13,7 @@ from src.api.schemas import (
     ReadyResponse,
 )
 from src.models.iris_classifier import IrisClassifier
+from src.monitoring.metrics import setup_metrics
 
 
 # global model instance
@@ -44,6 +45,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+setup_metrics(app)
 
 
 @app.get("/health", response_model=HealthResponse)
