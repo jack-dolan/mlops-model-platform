@@ -15,10 +15,43 @@ if ! command -v prowler &> /dev/null; then
 fi
 
 # run prowler against S3 and IAM
+# prowler exits 3 when it finds failures, which is expected
+PROWLER_OUTPUT=$(mktemp -d)
 echo "[Prowler] Running S3 and IAM checks..."
 echo ""
-prowler aws --services s3 iam --output-formats csv --status FAIL
+prowler aws --services s3 iam --region us-east-1 \
+    --output-formats csv -o "$PROWLER_OUTPUT" || true
 
+# parse the CSV into a readable report
+CSV_FILE=$(find "$PROWLER_OUTPUT" -name "*.csv" | head -1)
+if [ -n "$CSV_FILE" ]; then
+    FAIL_COUNT=$(awk -F';' 'NR>1 && $14=="FAIL" {count++} END {print count+0}' "$CSV_FILE")
+
+    if [ "$FAIL_COUNT" -gt 0 ]; then
+        echo "Found $FAIL_COUNT findings:"
+        echo ""
+
+        # group by severity
+        for SEV in critical high medium low; do
+            SEV_UPPER=$(echo "$SEV" | tr '[:lower:]' '[:upper:]')
+            MATCHES=$(awk -F';' -v sev="$SEV" 'NR>1 && tolower($19)==sev && $14=="FAIL" {print "  - ["$17"] "$12": "$15}' "$CSV_FILE")
+            if [ -n "$MATCHES" ]; then
+                echo "  $SEV_UPPER:"
+                echo "$MATCHES"
+                echo ""
+            fi
+        done
+    else
+        echo "No findings - all checks passed."
+    fi
+else
+    echo "  Warning: no prowler output file found"
+fi
+
+rm -rf "$PROWLER_OUTPUT"
+
+echo ""
+echo "---"
 echo ""
 
 # cost check (separate from prowler)
@@ -32,8 +65,10 @@ aws ce get-cost-and-usage \
     --metrics BlendedCost \
     --group-by Type=DIMENSION,Key=SERVICE \
     --query 'ResultsByTime[].Groups[?Metrics.BlendedCost.Amount!=`0`].[Keys[0],Metrics.BlendedCost.Amount]' \
-    --output table 2>/dev/null || echo "  Cost Explorer not enabled — enable it in the AWS billing console"
+    --output table 2>/dev/null || echo "  Cost Explorer not enabled - enable it in the AWS billing console"
 
+echo ""
+echo "---"
 echo ""
 
 # billing alarm check

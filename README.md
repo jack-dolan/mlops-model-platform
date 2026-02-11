@@ -1,6 +1,6 @@
 # MLOps Model Serving Platform
 
-A production-ready template for deploying machine learning models with full MLOps infrastructure—running on your own hardware.
+A template for deploying ML models with real infrastructure (Docker, Kubernetes, CI/CD, monitoring) running on your own hardware.
 
 [![CI](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/ci.yml)
 [![Build](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/build.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/build.yml)
@@ -11,9 +11,11 @@ A production-ready template for deploying machine learning models with full MLOp
 
 ## Overview
 
-This project demonstrates a complete MLOps pipeline for deploying ML models to production. It's designed as a **reusable template**—the model is intentionally simple; the infrastructure is production-grade.
+This project demonstrates an MLOps pipeline for deploying ML models to production. The model is intentionally simple (Iris classifier). The point is everything around it: the API, the container pipeline, the deployment automation, the monitoring, the experiment tracking. Swap in a different model and all of that infrastructure still works.
 
-**What makes this different:** Instead of running on managed cloud services, this runs on a Mac Mini in my home office. Same Kubernetes, same CI/CD, same monitoring—but with full control and ~$0.50/month in cloud costs.
+It's built to close the gap between "I trained a model" and "it's running reliably in production": deployment, monitoring, experiment tracking.
+
+**What makes this different:** Instead of running on managed cloud services, this runs on a Mac Mini in my home office. Same Kubernetes, same CI/CD, same monitoring, but with full control and ~$0.50/month in cloud costs.
 
 **What's included:**
 - FastAPI model serving API with health checks and metrics
@@ -22,6 +24,7 @@ This project demonstrates a complete MLOps pipeline for deploying ML models to p
 - GitHub Actions CI/CD with self-hosted runner
 - MLflow integration for experiment tracking (artifacts in S3)
 - Prometheus + Grafana monitoring stack
+- Automated AWS security scanning (Prowler), cost tracking, and billing alarms
 - Secure external access via Cloudflare Tunnel
 
 ---
@@ -218,6 +221,93 @@ mlops-model-platform/
 
 ---
 
+## Workflow
+
+Here's what it looks like to go from "I trained a model" to "it's running in production":
+
+**1. Train and track the experiment.** You train locally, but point MLflow at the tracking server so the run is recorded: parameters, metrics, and the model artifact (stored in S3).
+
+```bash
+MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com python training/train_iris.py
+```
+
+You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanjack.com). Compare accuracy across runs, see which hyperparameters worked, download previous model versions.
+
+**2. Update the model and push.** When you're happy with a model, update the artifact in the repo and push to GitHub.
+
+**3. CI runs automatically.** GitHub Actions lints the code, runs the test suite, and type-checks everything. If anything fails, the push is flagged before it goes further.
+
+**4. Build and deploy.** On merge to main, CI builds a multi-arch Docker image and pushes it to GitHub Container Registry. The self-hosted runner on the Mac Mini deploys to staging automatically. Production requires manual approval.
+
+**5. Monitor.** Grafana shows request latency, error rates, and prediction distribution in real time. If the model starts returning unusual predictions or latency spikes, you'll see it.
+
+**6. Audit.** Every Monday, Prowler runs a security scan of the AWS setup, the script checks recent spending by service, and flags if billing alarms are missing. Results show up in the GitHub Actions logs.
+
+---
+
+## Swapping the Model
+
+The Iris classifier is a placeholder. To deploy a different model, you implement the model interface. It's two methods:
+
+```python
+class ModelInterface(ABC):
+    @abstractmethod
+    def predict(self, features: dict[str, Any]) -> dict[str, Any]:
+        """Takes feature dict, returns prediction dict."""
+        pass
+
+    @abstractmethod
+    def get_model_info(self) -> dict[str, Any]:
+        """Returns model metadata (name, version, features, etc.)."""
+        pass
+```
+
+For example, here's what a wine quality classifier would look like:
+
+```python
+# src/models/wine_classifier.py
+class WineClassifier(ModelInterface):
+    def __init__(self, model_path):
+        with open(model_path, "rb") as f:
+            data = pickle.load(f)
+        self.model = data["model"]
+        self.feature_names = data["feature_names"]
+        self.version = data["version"]
+
+    def predict(self, features):
+        X = np.array([[features[name] for name in self.feature_names]])
+        start = time.perf_counter()
+        prediction = self.model.predict(X)[0]
+        elapsed = time.perf_counter() - start
+
+        INFERENCE_TIME.observe(elapsed)
+        PREDICTION_COUNTER.labels(predicted_class=str(prediction)).inc()
+
+        return {
+            "prediction": int(prediction),
+            "model_version": self.version,
+            "inference_time_ms": round(elapsed * 1000, 3),
+        }
+
+    def get_model_info(self):
+        return {
+            "name": "wine-quality",
+            "version": self.version,
+            "framework": "sklearn",
+            "features": self.feature_names,
+        }
+```
+
+Then you'd need to:
+
+1. **Write a training script** (`training/train_wine.py`). Load your dataset, train the model, save it as a pickle with the same structure (`model`, `feature_names`, `version`), and log the run to MLflow.
+2. **Wire it up** in `src/api/main.py`. Swap `IrisClassifier` for `WineClassifier`.
+3. **Update the tests.** The model-specific tests need to change (expected feature names, class names, sample predictions). The API tests (`test_health`, `test_ready`, `test_metrics_endpoint`) stay the same since they don't care which model is loaded.
+
+The rest of the stack (Docker, Kubernetes, CI/CD, monitoring, Grafana dashboards) works without changes.
+
+---
+
 ## Infrastructure Costs
 
 | Component | Monthly Cost |
@@ -277,7 +367,7 @@ I chose to run this on my own hardware instead of EKS/GKE for several reasons:
 3. **Always-on:** No "oops I left the cluster running" cloud bills
 4. **Full control:** I understand every component in the stack
 
-The manifests are portable—they'd work on EKS/GKE with minimal changes.
+The manifests are portable - they'd work on EKS/GKE with minimal changes.
 
 ---
 
@@ -290,6 +380,7 @@ The manifests are portable—they'd work on EKS/GKE with minimal changes.
 - [x] MLflow integration with S3
 - [x] Prometheus + Grafana monitoring
 - [x] Cloudflare Tunnel for external access
+- [ ] Model versioning and rollback (MLflow model registry promotion)
 - [ ] Model drift detection
 - [ ] A/B testing support
 
