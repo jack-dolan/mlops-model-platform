@@ -85,7 +85,7 @@ curl -X POST https://mlops-api.dolanjack.com/predict \
   }'
 
 # Response:
-# {"prediction": "setosa", "confidence": 1.0, "model_version": "1.0.0", "inference_time_ms": 0.8}
+# {"prediction": "setosa", "confidence": 1.0, "model_version": "3", "inference_time_ms": 0.8}
 ```
 
 ### Local Development
@@ -172,7 +172,7 @@ kubectl apply -k kubernetes/overlays/production
 {
   "prediction": "setosa",
   "confidence": 1.0,
-  "model_version": "1.0.0",
+  "model_version": "3",
   "inference_time_ms": 0.8
 }
 ```
@@ -225,7 +225,7 @@ mlops-model-platform/
 
 Here's what it looks like to go from "I trained a model" to "it's running in production":
 
-**1. Train and track the experiment.** You train locally, but point MLflow at the tracking server so the run is recorded: parameters, metrics, and the model artifact (stored in S3).
+**1. Train and track the experiment.** You train locally, but point MLflow at the tracking server so the run is recorded: parameters, metrics, and the model artifact (stored in S3). Each run automatically registers a new version in the MLflow model registry.
 
 ```bash
 MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com \
@@ -234,7 +234,7 @@ MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com \
 
 You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanjack.com). Compare accuracy across runs, see which hyperparameters worked, download previous model versions. Model artifacts are stored in S3 via the MLflow server's artifact proxy — no AWS credentials needed on the client.
 
-**2. Update the model and push.** When you're happy with a model, update the artifact in the repo and push to GitHub.
+**2. Promote the model.** When you're happy with a run, promote its version to "Production" in the MLflow model registry. The API loads the model from the registry at startup, so a pod restart picks up the new version — no image rebuild needed.
 
 **3. CI runs automatically.** GitHub Actions lints the code, runs the test suite, and type-checks everything. If anything fails, the push is flagged before it goes further.
 
@@ -243,6 +243,52 @@ You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanj
 **5. Monitor.** Grafana shows request latency, error rates, and prediction distribution in real time. If the model starts returning unusual predictions or latency spikes, you'll see it.
 
 **6. Audit.** Every Monday, Prowler runs a security scan of the AWS setup, the script checks recent spending by service, and flags if billing alarms are missing. Results show up in the GitHub Actions logs.
+
+---
+
+## Model Versioning & Rollback
+
+The API loads its model from the MLflow model registry at startup. Every training run auto-registers a new version, and the API serves whichever version is tagged "Production". This means you can swap models without rebuilding or redeploying the container.
+
+**How it works:**
+- `training/train_iris.py` logs the model to MLflow with `registered_model_name`, creating a new registry version each run
+- On startup, the API reads `MLFLOW_TRACKING_URI` from the environment and calls `IrisClassifier.from_mlflow()` to load the Production-stage model
+- If MLflow is unavailable (or not configured), it falls back to the pickle file baked into the Docker image
+
+**Promoting a new model:**
+
+```bash
+# Train a new model (auto-registers as a new version)
+MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com \
+  python training/train_iris.py --n-estimators 200 --max-depth 8
+
+# Promote it to Production in MLflow
+python -c "
+from mlflow.tracking import MlflowClient
+client = MlflowClient('https://mlops-mlflow.dolanjack.com')
+client.transition_model_version_stage('iris-classifier', '<VERSION>', 'Production')
+"
+
+# Restart the pod to pick it up
+kubectl rollout restart deploy/model-service -n production
+```
+
+**Rolling back:**
+
+```bash
+# Archive the bad version, restore the previous one
+python -c "
+from mlflow.tracking import MlflowClient
+client = MlflowClient('https://mlops-mlflow.dolanjack.com')
+client.transition_model_version_stage('iris-classifier', '<BAD_VERSION>', 'Archived')
+client.transition_model_version_stage('iris-classifier', '<GOOD_VERSION>', 'Production')
+"
+
+# Restart the pod
+kubectl rollout restart deploy/model-service -n production
+```
+
+Check which version is live at any time: `curl https://mlops-api.dolanjack.com/model/info`
 
 ---
 
@@ -381,7 +427,7 @@ The manifests are portable - they'd work on EKS/GKE with minimal changes.
 - [x] MLflow integration with S3
 - [x] Prometheus + Grafana monitoring
 - [x] Cloudflare Tunnel for external access
-- [ ] Model versioning and rollback (MLflow model registry promotion)
+- [x] Model versioning and rollback (MLflow model registry promotion)
 - [ ] Model drift detection
 - [ ] A/B testing support
 
