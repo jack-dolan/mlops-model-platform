@@ -228,10 +228,11 @@ Here's what it looks like to go from "I trained a model" to "it's running in pro
 **1. Train and track the experiment.** You train locally, but point MLflow at the tracking server so the run is recorded: parameters, metrics, and the model artifact (stored in S3).
 
 ```bash
-MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com python training/train_iris.py
+MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com \
+  python training/train_iris.py --n-estimators 150 --max-depth 5
 ```
 
-You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanjack.com). Compare accuracy across runs, see which hyperparameters worked, download previous model versions.
+You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanjack.com). Compare accuracy across runs, see which hyperparameters worked, download previous model versions. Model artifacts are stored in S3 via the MLflow server's artifact proxy — no AWS credentials needed on the client.
 
 **2. Update the model and push.** When you're happy with a model, update the artifact in the repo and push to GitHub.
 

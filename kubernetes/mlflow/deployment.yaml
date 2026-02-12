@@ -19,12 +19,17 @@ spec:
         - name: mlflow
           image: ghcr.io/mlflow/mlflow:v2.10.0
           command:
-            - mlflow
-            - server
-            - --host=0.0.0.0
-            - --port=5000
-            - --backend-store-uri=sqlite:///data/mlflow.db
-            - --default-artifact-root=s3://mlops-model-platform-mlflow/artifacts
+            - sh
+            - -c
+            - |
+              pip install boto3 --quiet &&
+              mlflow server \
+                --host=0.0.0.0 \
+                --port=5000 \
+                --backend-store-uri=sqlite:///data/mlflow.db \
+                --default-artifact-root=mlflow-artifacts:/ \
+                --serve-artifacts \
+                --artifacts-destination=s3://mlops-model-platform-mlflow/artifacts
           ports:
             - containerPort: 5000
           env:
@@ -32,12 +37,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: aws-credentials
-                  key: access-key
+                  key: aws-access-key-id
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: aws-credentials
-                  key: secret-key
+                  key: aws-secret-access-key
             - name: AWS_DEFAULT_REGION
               value: "us-east-1"
           volumeMounts:

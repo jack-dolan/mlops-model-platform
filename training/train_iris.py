@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Train an Iris classifier and save it."""
 
+import argparse
 import pickle
 from pathlib import Path
 
@@ -11,23 +12,37 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train an Iris classifier")
+    parser.add_argument("--n-estimators", type=int, default=100)
+    parser.add_argument("--max-depth", type=int, default=5)
+    parser.add_argument("--test-size", type=float, default=0.2)
+    parser.add_argument("--random-state", type=int, default=42)
+    parser.add_argument(
+        "--no-save", action="store_true", help="skip saving model to disk"
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+
     # load data
     iris = load_iris()
     X, y = iris.data, iris.target
     feature_names = iris.feature_names
     target_names = iris.target_names
 
-    # train/test split - 80/20
+    # train/test split
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X, y, test_size=args.test_size, random_state=args.random_state
     )
 
-    # model params - easy to tweak
+    # model params
     params = {
-        "n_estimators": 100,
-        "max_depth": 5,
-        "random_state": 42,
+        "n_estimators": args.n_estimators,
+        "max_depth": args.max_depth,
+        "random_state": args.random_state,
     }
 
     # start mlflow run
@@ -36,6 +51,7 @@ def main():
     with mlflow.start_run():
         # log params
         mlflow.log_params(params)
+        mlflow.log_param("test_size", args.test_size)
 
         # train
         model = RandomForestClassifier(**params)
@@ -53,21 +69,22 @@ def main():
         mlflow.log_metric("accuracy", accuracy)
 
         # save model to disk
-        model_dir = Path(__file__).parent.parent / "models"
-        model_dir.mkdir(exist_ok=True)
-        model_path = model_dir / "model.pkl"
+        if not args.no_save:
+            model_dir = Path(__file__).parent.parent / "models"
+            model_dir.mkdir(exist_ok=True)
+            model_path = model_dir / "model.pkl"
 
-        model_info = {
-            "model": model,
-            "feature_names": feature_names,
-            "target_names": target_names,
-            "version": "1.0.0",
-        }
+            model_info = {
+                "model": model,
+                "feature_names": feature_names,
+                "target_names": target_names,
+                "version": "1.0.0",
+            }
 
-        with open(model_path, "wb") as f:
-            pickle.dump(model_info, f)
+            with open(model_path, "wb") as f:
+                pickle.dump(model_info, f)
 
-        print(f"\nModel saved to {model_path}")
+            print(f"\nModel saved to {model_path}")
 
         # also log to mlflow
         mlflow.sklearn.log_model(model, "model")
