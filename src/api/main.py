@@ -1,5 +1,7 @@
 """FastAPI application for model serving."""
 
+import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -17,26 +19,43 @@ from src.api.schemas import (
 from src.models.iris_classifier import IrisClassifier
 from src.monitoring.metrics import setup_metrics
 
+logger = logging.getLogger(__name__)
+
 # global model instance
 model: IrisClassifier | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Load model on startup."""
+    """Load model on startup — try MLflow registry first, fall back to pickle."""
     global model
 
-    model_path = Path(__file__).parent.parent.parent / "models" / "model.pkl"
+    mlflow_uri = os.environ.get("MLFLOW_TRACKING_URI")
+    model_name = os.environ.get("MLFLOW_MODEL_NAME", "iris-classifier")
+    model_stage = os.environ.get("MLFLOW_MODEL_STAGE", "Production")
 
-    if model_path.exists():
-        model = IrisClassifier(model_path)
-        print(f"Loaded model from {model_path}")
-    else:
-        print(f"Warning: model not found at {model_path}")
+    # try MLflow first
+    if mlflow_uri:
+        try:
+            model = IrisClassifier.from_mlflow(mlflow_uri, model_name, model_stage)
+            logger.info(
+                "Loaded model from MLflow registry: %s version %s",
+                model_name, model.version,
+            )
+        except Exception:
+            logger.exception("Failed to load from MLflow, falling back to pickle")
 
-    yield  # app runs here
+    # fall back to pickle
+    if model is None:
+        model_path = Path(__file__).parent.parent.parent / "models" / "model.pkl"
+        if model_path.exists():
+            model = IrisClassifier(model_path)
+            logger.info("Loaded model from %s", model_path)
+        else:
+            logger.warning("No model found — tried MLflow and %s", model_path)
 
-    # cleanup on shutdown (if needed)
+    yield
+
     model = None
 
 

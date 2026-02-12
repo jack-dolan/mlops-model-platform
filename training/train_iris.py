@@ -86,8 +86,14 @@ def main():
 
             print(f"\nModel saved to {model_path}")
 
-        # also log to mlflow
-        mlflow.sklearn.log_model(model, "model")
+        # log metadata tags the API needs to reconstruct feature/target names
+        mlflow.set_tag("feature_names", ",".join(feature_names))
+        mlflow.set_tag("target_names", ",".join(target_names))
+
+        # log model and auto-register in the model registry
+        mlflow.sklearn.log_model(
+            model, "model", registered_model_name="iris-classifier"
+        )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 """Tests for the Iris classifier."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from src.models.iris_classifier import IrisClassifier
@@ -88,3 +90,61 @@ def test_model_not_found():
     """Should raise error for missing model file."""
     with pytest.raises(FileNotFoundError):
         IrisClassifier("/nonexistent/path/model.pkl")
+
+
+# --- MLflow loading tests ---
+
+
+@patch("src.models.iris_classifier.MlflowClient")
+@patch("src.models.iris_classifier.mlflow")
+def test_from_mlflow(mock_mlflow, mock_client_cls):
+    """Should load model from MLflow registry with correct metadata."""
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+
+    # fake registry version
+    mock_version = MagicMock()
+    mock_version.version = "3"
+    mock_version.run_id = "abc123"
+    mock_client.get_latest_versions.return_value = [mock_version]
+
+    # fake run with tags
+    mock_run = MagicMock()
+    mock_run.data.tags = {
+        "feature_names": "sepal length (cm),sepal width (cm),petal length (cm),petal width (cm)",
+        "target_names": "setosa,versicolor,virginica",
+    }
+    mock_client.get_run.return_value = mock_run
+
+    # fake sklearn model
+    fake_model = MagicMock()
+    mock_mlflow.sklearn.load_model.return_value = fake_model
+
+    clf = IrisClassifier.from_mlflow(
+        "http://mlflow:5000", "iris-classifier", "Production"
+    )
+
+    assert clf.version == "3"
+    assert clf.model is fake_model
+    assert clf.feature_names == [
+        "sepal length (cm)", "sepal width (cm)",
+        "petal length (cm)", "petal width (cm)",
+    ]
+    assert clf.target_names == ["setosa", "versicolor", "virginica"]
+    mock_mlflow.sklearn.load_model.assert_called_once_with(
+        "models:/iris-classifier/Production"
+    )
+
+
+@patch("src.models.iris_classifier.MlflowClient")
+@patch("src.models.iris_classifier.mlflow")
+def test_from_mlflow_no_versions(mock_mlflow, mock_client_cls):
+    """Should raise RuntimeError when no model at requested stage."""
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+    mock_client.get_latest_versions.return_value = []
+
+    with pytest.raises(RuntimeError, match="No model.*found at stage"):
+        IrisClassifier.from_mlflow(
+            "http://mlflow:5000", "iris-classifier", "Production"
+        )
