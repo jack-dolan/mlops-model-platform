@@ -216,8 +216,9 @@ mlops-model-platform/
 ```
 
 - **CI:** Runs on every PR (lint, format, type check, test)
-- **Build:** Runs on merge to main (multi-arch image pushed to GHCR)
-- **Deploy:** Self-hosted runner deploys to staging automatically, production requires approval
+- **Build:** Runs on merge to main. Builds for both `linux/amd64` and `linux/arm64` (dev machine is x86, Mac Mini is Apple Silicon) and pushes to GHCR.
+- **Deploy:** Self-hosted runner deploys to staging automatically, production requires approval. Prunes unused container images from the node after each deploy.
+- **Cleanup:** After each build, old untagged image versions are pruned from GHCR to keep storage in check.
 
 ---
 
@@ -238,7 +239,7 @@ You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanj
 
 **3. CI runs automatically.** GitHub Actions lints the code, runs the test suite, and type-checks everything. If anything fails, the push is flagged before it goes further.
 
-**4. Build and deploy.** On merge to main, CI builds a multi-arch Docker image and pushes it to GitHub Container Registry. The self-hosted runner on the Mac Mini deploys to staging automatically. Production requires manual approval.
+**4. Build and deploy.** On merge to main, CI builds a Docker image for both amd64 and arm64 and pushes it to GitHub Container Registry. The self-hosted runner on the Mac Mini pulls the arm64 image and deploys to staging automatically. Production requires manual approval.
 
 **5. Monitor.** Grafana shows request latency, error rates, and prediction distribution in real time. If the model starts returning unusual predictions or latency spikes, you'll see it.
 
