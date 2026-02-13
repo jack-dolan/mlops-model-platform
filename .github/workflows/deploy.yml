@@ -32,6 +32,9 @@ jobs:
           kubectl wait --for=condition=ready pod -l app=model-service -n staging --timeout=120s
           kubectl exec -n staging deploy/model-service -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
 
+      - name: Prune unused images
+        run: limactl shell k3s sudo crictl rmi --prune
+
   deploy-production:
     runs-on: self-hosted
     needs: deploy-staging
@@ -53,3 +56,6 @@ jobs:
         run: |
           kubectl wait --for=condition=ready pod -l app=model-service -n production --timeout=120s
           kubectl exec -n production deploy/model-service -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
+
+      - name: Prune unused images
+        run: limactl shell k3s sudo crictl rmi --prune
