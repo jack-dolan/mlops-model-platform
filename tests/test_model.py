@@ -127,8 +127,10 @@ def test_from_mlflow(mock_mlflow, mock_client_cls):
     assert clf.version == "3"
     assert clf.model is fake_model
     assert clf.feature_names == [
-        "sepal length (cm)", "sepal width (cm)",
-        "petal length (cm)", "petal width (cm)",
+        "sepal length (cm)",
+        "sepal width (cm)",
+        "petal length (cm)",
+        "petal width (cm)",
     ]
     assert clf.target_names == ["setosa", "versicolor", "virginica"]
     mock_mlflow.sklearn.load_model.assert_called_once_with(

@@ -45,14 +45,15 @@ class IrisClassifier(ModelInterface):
         # find the latest version at the requested stage
         versions = client.get_latest_versions(model_name, stages=[stage])
         if not versions:
-            raise RuntimeError(
-                f"No model '{model_name}' found at stage '{stage}'"
-            )
+            raise RuntimeError(f"No model '{model_name}' found at stage '{stage}'")
 
         mv = versions[0]
         logger.info(
             "Loading %s version %s (stage=%s, run=%s)",
-            model_name, mv.version, stage, mv.run_id,
+            model_name,
+            mv.version,
+            stage,
+            mv.run_id,
         )
 
         # load the sklearn model

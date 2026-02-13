@@ -40,7 +40,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             model = IrisClassifier.from_mlflow(mlflow_uri, model_name, model_stage)
             logger.info(
                 "Loaded model from MLflow registry: %s version %s",
-                model_name, model.version,
+                model_name,
+                model.version,
             )
         except Exception:
             logger.exception("Failed to load from MLflow, falling back to pickle")
