@@ -1,0 +1,154 @@
+name: Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check src/
+
+      - name: Format check
+        run: black --check src/ tests/
+
+      - name: Type check
+        run: mypy src/
+
+      - name: Train model
+        run: python training/train_iris.py
+
+      - name: Test
+        run: pytest --cov=src --cov-report=xml
+
+  build:
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Train model for fallback artifact
+        run: |
+          pip install scikit-learn mlflow
+          python training/train_iris.py
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  cleanup-ghcr:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push'
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete old image versions
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: mlops-model-platform
+          package-type: container
+          min-versions-to-keep: 30
+          delete-only-untagged-versions: true
+
+  deploy-staging:
+    runs-on: self-hosted
+    needs: build
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set PATH
+        run: echo "/opt/homebrew/bin:/usr/local/bin" >> $GITHUB_PATH
+
+      - name: Deploy to staging
+        run: |
+          kubectl apply -k kubernetes/overlays/staging
+          kubectl set image deployment/model-service model-service=${{ env.IMAGE }}:${{ github.sha }} -n staging
+          kubectl rollout status deployment/model-service -n staging --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          kubectl wait --for=condition=ready pod -l app=model-service -n staging --timeout=120s
+          kubectl exec -n staging deploy/model-service -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
+
+      - name: Prune unused images
+        run: limactl shell k3s sudo crictl rmi --prune
+
+  deploy-production:
+    runs-on: self-hosted
+    needs: deploy-staging
+    if: github.event_name == 'push'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set PATH
+        run: echo "/opt/homebrew/bin:/usr/local/bin" >> $GITHUB_PATH
+
+      - name: Deploy to production
+        run: |
+          kubectl apply -k kubernetes/overlays/production
+          kubectl set image deployment/model-service model-service=${{ env.IMAGE }}:${{ github.sha }} -n production
+          kubectl rollout status deployment/model-service -n production --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          kubectl wait --for=condition=ready pod -l app=model-service -n production --timeout=120s
+          kubectl exec -n production deploy/model-service -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
+
+      - name: Prune unused images
+        run: limactl shell k3s sudo crictl rmi --prune

@@ -2,6 +2,7 @@
 *.md
 !README.md
 !readme.md
+!docs/*.md
 
 # python
 __pycache__/
