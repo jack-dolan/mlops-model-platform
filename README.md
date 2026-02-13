@@ -11,11 +11,11 @@ A template for deploying ML models with real infrastructure (Docker, Kubernetes,
 
 ## Overview
 
-This project demonstrates an MLOps pipeline for deploying ML models to production. The model is intentionally simple (Iris classifier). The point is everything around it: the API, the container pipeline, the deployment automation, the monitoring, the experiment tracking. Swap in a different model and all of that infrastructure still works.
+An MLOps pipeline for deploying ML models to production. The model is intentionally simple (Iris classifier) — the point is everything around it: the API, the container pipeline, the deployment automation, the monitoring, the experiment tracking. Swap in a different model and all of that infrastructure still works.
 
-It's built to close the gap between "I trained a model" and "it's running reliably in production": deployment, monitoring, experiment tracking.
+Built to close the gap between "I trained a model" and "it's running reliably in production."
 
-**What makes this different:** Instead of running on managed cloud services, this runs on a Mac Mini in my home office. Same Kubernetes, same CI/CD, same monitoring, but with full control and ~$0.50/month in cloud costs.
+**What makes this different:** Instead of running on managed cloud services, this runs on a Mac Mini in my home office. Same Kubernetes, same CI/CD, same monitoring — just with full control and about $0.50/month in cloud costs.
 
 **What's included:**
 - FastAPI model serving API with health checks and metrics
@@ -248,7 +248,7 @@ You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanj
 
 ## Model Versioning & Rollback
 
-The API loads its model from the MLflow model registry at startup. Every training run auto-registers a new version, and the API serves whichever version is tagged "Production". This means you can swap models without rebuilding or redeploying the container.
+The API pulls its model from the MLflow model registry on startup. Every training run auto-registers a new version, and the API serves whichever version is tagged "Production" — so you can swap models without rebuilding or redeploying the container.
 
 **How it works:**
 - `training/train_iris.py` logs the model to MLflow with `registered_model_name`, creating a new registry version each run
@@ -359,13 +359,13 @@ The rest of the stack (Docker, Kubernetes, CI/CD, monitoring, Grafana dashboards
 
 | Component | Monthly Cost |
 |-----------|-------------|
-| AWS S3 (MLflow artifacts) | ~$0.50 |
+| AWS S3 (MLflow artifacts) | < $1 |
 | AWS Parameter Store | $0 (free tier) |
 | Cloudflare (Tunnel + DNS) | $0 |
 | GitHub Container Registry | $0 |
-| **Total** | **~$0.50/month** |
+| **Total** | **< $1/month** |
 
-Plus one-time: Mac Mini M4 (~$600), Domain (~$12/year)
+Plus one-time: Mac Mini M4 (about $600), domain (about $12/year)
 
 ---
 
@@ -381,6 +381,17 @@ The service exposes Prometheus metrics at `/metrics`:
 Access the dashboards:
 - **Grafana:** [mlops-grafana.dolanjack.com](https://mlops-grafana.dolanjack.com)
 - **MLflow:** [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanjack.com)
+
+### Load Test Results
+
+Tested with [hey](https://github.com/rakyll/hey) against the production `/predict` endpoint, going through Cloudflare Tunnel. 2 pod replicas on a Mac Mini M4.
+
+| Concurrency | Throughput | p50 | p95 | p99 | Errors |
+|-------------|-----------|-----|-----|-----|--------|
+| 50 | 220 req/s | 189ms | 309ms | 812ms | 0% |
+| 100 | 220 req/s | 307ms | 478ms | 3.1s | 0% |
+
+Throughput plateaus around 220 req/s. Most of the latency is network (Cloudflare Tunnel round-trip), not inference — the model itself runs in under 1ms. p99 gets spiky at high concurrency but zero errors across all runs.
 
 ---
 
@@ -407,14 +418,14 @@ mypy src/
 
 ## Why Self-Hosted?
 
-I chose to run this on my own hardware instead of EKS/GKE for several reasons:
+Runs on my own hardware instead of EKS/GKE because:
 
-1. **Cost:** ~$0.50/month vs. $50-150/month for managed K8s
+1. **Cost:** Under a dollar a month vs $50-150/month for managed K8s
 2. **Learning:** Managing k3s teaches more about Kubernetes internals than managed services
 3. **Always-on:** No "oops I left the cluster running" cloud bills
 4. **Full control:** I understand every component in the stack
 
-The manifests are portable - they'd work on EKS/GKE with minimal changes.
+Manifests are portable though — they'd work on EKS/GKE with minimal changes.
 
 ---
 
