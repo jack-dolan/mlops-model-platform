@@ -2,7 +2,7 @@
 
 A template for deploying ML models with real infrastructure (Docker, Kubernetes, CI/CD, monitoring) running on your own hardware.
 
-[![Pipeline](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml)
+[![Pipeline](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml) [![AWS Audit](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml)
 
 **Live API:** [mlops-api.dolanjack.com](https://mlops-api.dolanjack.com/docs)
 
