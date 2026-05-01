@@ -1,0 +1,54 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: model-service
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: model-service
+      rules:
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(http_requests_total[5m]))
+            > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate on model service"
+            description: "More than 5% of requests are returning 5xx errors."
+
+        - alert: HighP95Latency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High p95 request latency"
+            description: "p95 request latency is above 500ms."
+
+        - alert: HighInferenceTime
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(model_inference_seconds_bucket[5m])) by (le)
+            ) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High p95 model inference time"
+            description: "p95 model inference time is above 100ms."
+
+        - alert: ServiceDown
+          expr: up{job="model-service"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Model service is down"
+            description: "Prometheus has not been able to scrape the model service for 5 minutes."

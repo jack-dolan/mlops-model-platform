@@ -1,0 +1,27 @@
+name: AWS Audit
+
+on:
+  schedule:
+    - cron: '0 14 * * 1'  # Monday 9am EST
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        run: |
+          python3 -m venv .audit-venv
+          source .audit-venv/bin/activate
+          pip install prowler
+
+      - name: Run audit
+        run: |
+          source .audit-venv/bin/activate
+          ./scripts/aws-audit.sh
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf .audit-venv

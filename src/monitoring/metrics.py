@@ -1,5 +1,6 @@
 """Prometheus metrics for model serving."""
 
+from fastapi import FastAPI
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -16,6 +17,6 @@ PREDICTION_COUNTER = Counter(
 )
 
 
-def setup_metrics(app):
+def setup_metrics(app: FastAPI) -> None:
     """Attach prometheus instrumentation to the FastAPI app."""
     Instrumentator().instrument(app).expose(app)
