@@ -17,4 +17,6 @@ data:
         service: http://mlflow.staging.svc.cluster.local:5000
       - hostname: mlops-grafana.dolanjack.com
         service: http://monitoring-grafana.monitoring.svc.cluster.local:80
+      - hostname: letsgogaming.dolanjack.com
+        service: http://letsgogaming.production.svc.cluster.local:80
       - service: http_status:404
