@@ -131,7 +131,7 @@ jobs:
 
       - name: Deploy to staging
         run: |
-          sed -i "s|image: ghcr.io/jack-dolan/mlops-model-platform:.*|image: ${{ env.IMAGE }}:${{ github.sha }}|" kubernetes/base/deployment.yaml
+          sed -i '' "s|image: ghcr.io/jack-dolan/mlops-model-platform:.*|image: ${{ env.IMAGE }}:${{ github.sha }}|" kubernetes/base/deployment.yaml
           kubectl apply -k kubernetes/overlays/staging
           kubectl rollout status deployment/model-service -n staging --timeout=300s
 
@@ -157,7 +157,7 @@ jobs:
 
       - name: Deploy to production
         run: |
-          sed -i "s|image: ghcr.io/jack-dolan/mlops-model-platform:.*|image: ${{ env.IMAGE }}:${{ github.sha }}|" kubernetes/base/deployment.yaml
+          sed -i '' "s|image: ghcr.io/jack-dolan/mlops-model-platform:.*|image: ${{ env.IMAGE }}:${{ github.sha }}|" kubernetes/base/deployment.yaml
           kubectl apply -k kubernetes/overlays/production
           kubectl rollout status deployment/model-service -n production --timeout=300s
 
