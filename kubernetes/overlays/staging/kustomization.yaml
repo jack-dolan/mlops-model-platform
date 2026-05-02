@@ -11,3 +11,10 @@ patches:
     target:
       kind: Deployment
       name: model-service
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: mlops-api-staging.dolanjack.com
+    target:
+      kind: Ingress
+      name: model-service

@@ -6,3 +6,4 @@ resources:
   - configmap.yaml
   - servicemonitor.yaml
   - prometheusrule.yaml
+  - ingress.yaml
