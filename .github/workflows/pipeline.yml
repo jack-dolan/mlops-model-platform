@@ -102,6 +102,22 @@ jobs:
           min-versions-to-keep: 30
           delete-only-untagged-versions: true
 
+  apply-infra:
+    runs-on: self-hosted
+    needs: build
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set PATH
+        run: echo "/opt/homebrew/bin:/usr/local/bin" >> $GITHUB_PATH
+
+      - name: Apply shared infra manifests
+        run: |
+          kubectl apply -f kubernetes/mlflow/ingress.yaml
+          kubectl apply -f kubernetes/monitoring/ingress.yaml
+
   deploy-staging:
     runs-on: self-hosted
     needs: build
