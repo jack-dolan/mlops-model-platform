@@ -95,18 +95,28 @@ jobs:
     steps:
       - name: Diagnose GHCR versions
         run: |
+          OWNER="${{ github.repository_owner }}"
+          PACKAGE="mlops-model-platform"
+
           echo "=== Total versions ==="
-          gh api --paginate "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions" \
-            --jq 'length' | paste -sd+ | bc
-          echo "=== First 5 IDs and tags ==="
-          gh api "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions?per_page=5" \
-            --jq '.[] | {id, tags: .metadata.container.tags}'
-          echo "=== Test delete on oldest version ==="
-          oldest_id=$(gh api --paginate "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions" \
-            --jq '.[] | select(.metadata.container.tags | index("latest") | not) | .id' | tail -1)
-          echo "Oldest ID: $oldest_id"
-          gh api --method DELETE "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions/$oldest_id"
-          echo "Delete exit code: $?"
+          gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" --jq 'length' | paste -sd+ | bc
+
+          echo "=== Oldest tagged (non-latest) version ==="
+          oldest_tagged=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
+            --jq '.[] | select(.metadata.container.tags | length > 0) | select(.metadata.container.tags | index("latest") | not) | {id, tags: .metadata.container.tags}' \
+            | tail -1)
+          echo "$oldest_tagged"
+          oldest_tagged_id=$(echo "$oldest_tagged" | jq '.id')
+          echo "Attempting delete of oldest tagged ID: $oldest_tagged_id"
+          gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$oldest_tagged_id" \
+            && echo "DELETE succeeded" || echo "DELETE failed: $?"
+
+          echo "=== Oldest untagged version ==="
+          oldest_untagged_id=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
+            --jq '.[] | select(.metadata.container.tags | length == 0) | .id' | tail -1)
+          echo "Attempting delete of oldest untagged ID: $oldest_untagged_id"
+          gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$oldest_untagged_id" \
+            && echo "DELETE succeeded" || echo "DELETE failed: $?"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
