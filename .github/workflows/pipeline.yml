@@ -98,25 +98,19 @@ jobs:
           OWNER="${{ github.repository_owner }}"
           PACKAGE="mlops-model-platform"
 
-          echo "=== Total versions ==="
-          gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" --jq 'length' | paste -sd+ | bc
+          echo "=== ID range of all versions ==="
+          all_ids=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" --jq '.[].id')
+          echo "Newest ID: $(echo "$all_ids" | head -1)"
+          echo "Oldest ID: $(echo "$all_ids" | tail -1)"
+          echo "Total: $(echo "$all_ids" | wc -l)"
 
-          echo "=== Oldest tagged (non-latest) version ==="
-          oldest_tagged=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
-            --jq '.[] | select(.metadata.container.tags | length > 0) | select(.metadata.container.tags | index("latest") | not) | {id, tags: .metadata.container.tags}' \
-            | tail -1)
-          echo "$oldest_tagged"
-          oldest_tagged_id=$(echo "$oldest_tagged" | jq '.id')
-          echo "Attempting delete of oldest tagged ID: $oldest_tagged_id"
-          gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$oldest_tagged_id" \
-            && echo "DELETE succeeded" || echo "DELETE failed: $?"
-
-          echo "=== Oldest untagged version ==="
-          oldest_untagged_id=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
-            --jq '.[] | select(.metadata.container.tags | length == 0) | .id' | tail -1)
-          echo "Attempting delete of oldest untagged ID: $oldest_untagged_id"
-          gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$oldest_untagged_id" \
-            && echo "DELETE succeeded" || echo "DELETE failed: $?"
+          echo "=== Test delete on 31st newest version (first one the script would delete) ==="
+          target_id=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
+            --jq '.[] | select(.metadata.container.tags | index("latest") | not) | .id' \
+            | sed -n '31p')
+          echo "Target ID: $target_id"
+          gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$target_id" \
+            && echo "DELETE succeeded" || echo "DELETE failed"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
