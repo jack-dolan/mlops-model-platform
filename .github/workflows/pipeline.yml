@@ -93,18 +93,20 @@ jobs:
       packages: write
 
     steps:
-      - name: Delete old image versions
+      - name: Diagnose GHCR versions
         run: |
-          # Fetch all version IDs upfront (excluding "latest") so that deletions
-          # don't shift API pagination and cause spurious "Package not found" errors.
-          # Pipe through tail to keep the 30 newest, then delete everything older.
-          # || true tolerates 404s in case a version was already removed.
+          echo "=== Total versions ==="
           gh api --paginate "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions" \
-            --jq '.[] | select(.metadata.container.tags | index("latest") | not) | .id' \
-          | tail -n +31 \
-          | while read id; do
-              gh api --method DELETE "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions/$id" 2>/dev/null || true
-            done
+            --jq 'length' | paste -sd+ | bc
+          echo "=== First 5 IDs and tags ==="
+          gh api "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions?per_page=5" \
+            --jq '.[] | {id, tags: .metadata.container.tags}'
+          echo "=== Test delete on oldest version ==="
+          oldest_id=$(gh api --paginate "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions" \
+            --jq '.[] | select(.metadata.container.tags | index("latest") | not) | .id' | tail -1)
+          echo "Oldest ID: $oldest_id"
+          gh api --method DELETE "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions/$oldest_id"
+          echo "Delete exit code: $?"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
