@@ -99,11 +99,11 @@ jobs:
           # don't shift API pagination and cause spurious "Package not found" errors.
           # Pipe through tail to keep the 30 newest, then delete everything older.
           # || true tolerates 404s in case a version was already removed.
-          gh api --paginate "/user/packages/container/mlops-model-platform/versions" \
+          gh api --paginate "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions" \
             --jq '.[] | select(.metadata.container.tags | index("latest") | not) | .id' \
           | tail -n +31 \
           | while read id; do
-              gh api --method DELETE "/user/packages/container/mlops-model-platform/versions/$id" 2>/dev/null || true
+              gh api --method DELETE "/users/${{ github.repository_owner }}/packages/container/mlops-model-platform/versions/$id" 2>/dev/null || true
             done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
