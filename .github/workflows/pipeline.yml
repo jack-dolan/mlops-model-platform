@@ -98,17 +98,12 @@ jobs:
           OWNER="${{ github.repository_owner }}"
           PACKAGE="mlops-model-platform"
 
-          echo "=== 31st-35th newest versions (type + ID) ==="
-          gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
-            --jq '.[] | {id, tags: .metadata.container.tags}' \
-            | sed -n '31,35p'
-
-          echo "=== Test delete on 31st newest TAGGED (non-latest) version ==="
-          target_tagged_id=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
-            --jq '.[] | select(.metadata.container.tags | length > 0) | select(.metadata.container.tags | index("latest") | not) | .id' \
+          echo "=== Test delete on 31st newest OVERALL version ==="
+          target_id=$(gh api --paginate "/users/$OWNER/packages/container/$PACKAGE/versions" \
+            --jq '.[] | select(.metadata.container.tags | index("latest") | not) | .id' \
             | sed -n '31p')
-          echo "Target tagged ID: $target_tagged_id"
-          gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$target_tagged_id" \
+          echo "Target ID: $target_id"
+          gh api --method DELETE "/users/$OWNER/packages/container/$PACKAGE/versions/$target_id" \
             && echo "DELETE succeeded" || echo "DELETE failed"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
