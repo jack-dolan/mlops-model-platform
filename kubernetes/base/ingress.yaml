@@ -5,7 +5,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: placeholder.dolanjack.com
+    - host: model-api.example.com
       http:
         paths:
           - path: /

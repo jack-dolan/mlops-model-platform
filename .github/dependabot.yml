@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # The workflow pins actions by full commit SHA rather than by a floating tag,
+  # because a tag can be moved by whoever owns the action. Pinning only helps if
+  # the pins are kept current, which is what this does.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python:
+        patterns: ["*"]

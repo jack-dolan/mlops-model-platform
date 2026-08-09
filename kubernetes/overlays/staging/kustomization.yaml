@@ -14,7 +14,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: mlops-api-staging.dolanjack.com
+        value: model-api-staging.example.com
     target:
       kind: Ingress
       name: model-service

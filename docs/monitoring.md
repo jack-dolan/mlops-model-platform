@@ -1,5 +1,10 @@
 # Monitoring
 
+> **Retired deployment.** This describes how the platform ran on self-hosted
+> Kubernetes until August 2026. The cluster has been decommissioned, so the
+> hostnames below are placeholders and nothing is reachable. Kept because the
+> mechanism is the point, not the addresses.
+
 The service exposes Prometheus metrics at `/metrics`:
 
 - `http_request_duration_seconds` - Request latency histogram
@@ -7,9 +12,9 @@ The service exposes Prometheus metrics at `/metrics`:
 - `model_inference_seconds` - Model inference time
 - `predictions_total` - Predictions by class
 
-Access the dashboards:
-- **Grafana:** [mlops-grafana.dolanjack.com](https://mlops-grafana.dolanjack.com)
-- **MLflow:** [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanjack.com)
+Dashboards were served at:
+- **Grafana:** [grafana.example.com](https://grafana.example.com)
+- **MLflow:** [mlflow.example.com](https://mlflow.example.com)
 
 ## Alerting Rules
 

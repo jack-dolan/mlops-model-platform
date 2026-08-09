@@ -29,7 +29,7 @@ spec:
                 --backend-store-uri=sqlite:///data/mlflow.db \
                 --default-artifact-root=mlflow-artifacts:/ \
                 --serve-artifacts \
-                --artifacts-destination=s3://mlops-model-platform-mlflow/artifacts
+                --artifacts-destination=s3://YOUR_MLFLOW_BUCKET/artifacts
           ports:
             - containerPort: 5000
           env:

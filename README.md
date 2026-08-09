@@ -2,9 +2,14 @@
 
 A template for deploying ML models with real infrastructure (Docker, Kubernetes, CI/CD, monitoring) running on your own hardware.
 
-[![Pipeline](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml) [![AWS Audit](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml)
+[![CI](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml) [![AWS Audit](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml)
 
-**Live API:** [mlops-api.dolanjack.com](https://mlops-api.dolanjack.com/docs)
+> **Deployment retired, August 2026.** This platform ran for six months on
+> self-hosted Kubernetes. The hardware has been decommissioned, so there is no
+> longer a live endpoint. **The code, the manifests and the CI pipeline are
+> unchanged and still run** — CI lints, type-checks, trains the model and runs
+> the test suite on every push. The deployment manifests below describe the
+> cluster as it actually ran; hostnames in them are placeholders.
 
 ---
 
@@ -14,7 +19,9 @@ An MLOps pipeline for deploying ML models to production. The model is intentiona
 
 Built to close the gap between "I trained a model" and "it's running reliably in production."
 
-**What makes this different:** Instead of running on managed cloud services, this runs on a Mac Mini in my home office. Same Kubernetes, same CI/CD, same monitoring — just with full control and about $0.50/month in cloud costs.
+**What made this different:** instead of managed cloud services, it ran on a
+single self-hosted machine — same Kubernetes, same CI/CD, same monitoring, at
+about $0.50/month in cloud costs.
 
 **What's included:**
 - FastAPI model serving API with health checks and metrics
@@ -42,7 +49,7 @@ Built to close the gap between "I trained a model" and "it's running reliably in
                     ┌──────────────────────────┼───────────────────────────┐
                     ▼                          ▼                           ▼
 ┌───────────────────────────┐   ┌───────────────────────────┐   ┌───────────────────────────┐
-│         AWS               │   │       Cloudflare          │   │   Mac Mini (Home Lab)     │
+│         AWS               │   │       Cloudflare          │   │   Self-hosted node        │
 │                           │   │                           │   │                           │
 │  ┌─────────────────────┐  │   │  ┌─────────────────────┐  │   │  ┌─────────────────────┐  │
 │  │         S3          │  │   │  │      Tunnel         │  │   │  │    k3s Cluster      │  │
@@ -51,7 +58,7 @@ Built to close the gap between "I trained a model" and "it's running reliably in
 │                           │   │                           │   │  │  • MLflow Server    │  │
 │  ┌─────────────────────┐  │   │  ┌─────────────────────┐  │   │  │  • Prometheus       │  │
 │  │  Parameter Store    │  │   │  │        DNS          │  │   │  │  • Grafana          │  │
-│  │     (secrets)       │  │   │  │  (dolanjack.com)    │  │   │  │  • GitHub Runner    │  │
+│  │     (secrets)       │  │   │  │   (your domain)     │  │   │  │  • GitHub Runner    │  │
 │  └─────────────────────┘  │   │  └─────────────────────┘  │   │  └─────────────────────┘  │
 │                           │   │                           │   │                           │
 └───────────────────────────┘   └───────────────────────────┘   │  Hardware:                │
@@ -65,14 +72,14 @@ Built to close the gap between "I trained a model" and "it's running reliably in
 
 ## Quick Start
 
-### Try the Live API
+### Try the API (run it locally — see Local Development below)
 
 ```bash
 # Health check
-curl https://mlops-api.dolanjack.com/health
+curl http://localhost:8000/health
 
 # Get a prediction
-curl -X POST https://mlops-api.dolanjack.com/predict \
+curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
     "features": {
@@ -170,11 +177,11 @@ mlops-model-platform/
 │   ├── base/             # Base manifests
 │   ├── overlays/         # Environment-specific configs
 │   ├── mlflow/           # MLflow deployment
-│   └── cloudflared/      # Tunnel configuration
+│   └── monitoring/       # Grafana ingress
 ├── monitoring/           # Grafana dashboards
 ├── scripts/              # Utility scripts
 ├── docs/                 # Additional documentation
-└── .github/workflows/    # CI/CD pipelines
+└── .github/workflows/    # CI
 ```
 
 ---

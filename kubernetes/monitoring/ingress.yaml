@@ -6,7 +6,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: mlops-grafana.dolanjack.com
+    - host: grafana.example.com
       http:
         paths:
           - path: /

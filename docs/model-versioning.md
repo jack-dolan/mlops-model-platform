@@ -1,5 +1,10 @@
 # Model Versioning & Rollback
 
+> **Retired deployment.** This describes how the platform ran on self-hosted
+> Kubernetes until August 2026. The cluster has been decommissioned, so the
+> hostnames below are placeholders and nothing is reachable. Kept because the
+> mechanism is the point, not the addresses.
+
 The API pulls its model from the MLflow model registry on startup. Every training run auto-registers a new version, and the API serves whichever version is tagged "Production" — so you can swap models without rebuilding or redeploying the container.
 
 **How it works:**
@@ -11,13 +16,13 @@ The API pulls its model from the MLflow model registry on startup. Every trainin
 
 ```bash
 # Train a new model (auto-registers as a new version)
-MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com \
+MLFLOW_TRACKING_URI=https://mlflow.example.com \
   python training/train_iris.py --n-estimators 200 --max-depth 8
 
 # Promote it to Production in MLflow
 python -c "
 from mlflow.tracking import MlflowClient
-client = MlflowClient('https://mlops-mlflow.dolanjack.com')
+client = MlflowClient('https://mlflow.example.com')
 client.transition_model_version_stage('iris-classifier', '<VERSION>', 'Production')
 "
 
@@ -31,7 +36,7 @@ kubectl rollout restart deploy/model-service -n production
 # Archive the bad version, restore the previous one
 python -c "
 from mlflow.tracking import MlflowClient
-client = MlflowClient('https://mlops-mlflow.dolanjack.com')
+client = MlflowClient('https://mlflow.example.com')
 client.transition_model_version_stage('iris-classifier', '<BAD_VERSION>', 'Archived')
 client.transition_model_version_stage('iris-classifier', '<GOOD_VERSION>', 'Production')
 "
@@ -40,4 +45,4 @@ client.transition_model_version_stage('iris-classifier', '<GOOD_VERSION>', 'Prod
 kubectl rollout restart deploy/model-service -n production
 ```
 
-Check which version is live at any time: `curl https://mlops-api.dolanjack.com/model/info`
+Check which version is live at any time: `curl https://model-api.example.com/model/info`

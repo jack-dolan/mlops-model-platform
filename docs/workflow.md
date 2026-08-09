@@ -1,19 +1,24 @@
 # Workflow
 
+> **Retired deployment.** This describes how the platform ran on self-hosted
+> Kubernetes until August 2026. The cluster has been decommissioned, so the
+> hostnames below are placeholders and nothing is reachable. Kept because the
+> mechanism is the point, not the addresses.
+
 Here's what it looks like to go from "I trained a model" to "it's running in production":
 
 **1. Train and track the experiment.** You train locally, but point MLflow at the tracking server so the run is recorded: parameters, metrics, and the model artifact (stored in S3). Each run automatically registers a new version in the MLflow model registry.
 
 ```bash
-MLFLOW_TRACKING_URI=https://mlops-mlflow.dolanjack.com \
+MLFLOW_TRACKING_URI=https://mlflow.example.com \
   python training/train_iris.py --n-estimators 150 --max-depth 5
 ```
 
-You can view the run at [mlops-mlflow.dolanjack.com](https://mlops-mlflow.dolanjack.com). Compare accuracy across runs, see which hyperparameters worked, download previous model versions. Model artifacts are stored in S3 via the MLflow server's artifact proxy — no AWS credentials needed on the client.
+You can view the run at [mlflow.example.com](https://mlflow.example.com). Compare accuracy across runs, see which hyperparameters worked, download previous model versions. Model artifacts are stored in S3 via the MLflow server's artifact proxy — no AWS credentials needed on the client.
 
 **2. Promote the model.** When you're happy with a run, promote its version to "Production" in the MLflow model registry. The API loads the model from the registry at startup, so a pod restart picks up the new version — no image rebuild needed.
 
-**3. CI runs automatically.** GitHub Actions lints the code, runs the test suite, and type-checks everything. If anything fails, the push is flagged before it goes further.
+**3. CI runs automatically.** GitHub Actions lints the code, runs the test suite, and type-checks everything. If anything fails, the push is flagged before it goes further. **This is the one step that still runs today** — the deployment steps around it are retired.
 
 **4. Build and deploy.** On merge to main, CI builds a Docker image for both amd64 and arm64 and pushes it to GitHub Container Registry. The self-hosted runner on the Mac Mini pulls the arm64 image and deploys to staging automatically. Production requires manual approval.
 
