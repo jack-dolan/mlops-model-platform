@@ -24,4 +24,4 @@ You can view the run at [mlflow.example.com](https://mlflow.example.com). Compar
 
 **5. Monitor.** Grafana shows request latency, error rates, and prediction distribution in real time. If the model starts returning unusual predictions or latency spikes, you'll see it.
 
-**6. Audit.** Every Monday, Prowler runs a security scan of the AWS setup, the script checks recent spending by service, and flags if billing alarms are missing. Results show up in the GitHub Actions logs.
+**6. Audit.** A scheduled Prowler scan checked the AWS setup weekly for security and cost findings. Retired in August 2026 with the rest of the deployment — the AWS resources it audited have been deleted.

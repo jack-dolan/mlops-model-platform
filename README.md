@@ -2,7 +2,7 @@
 
 A template for deploying ML models with real infrastructure (Docker, Kubernetes, CI/CD, monitoring) running on your own hardware.
 
-[![CI](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml) [![AWS Audit](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/aws-audit.yml)
+[![CI](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jack-dolan/mlops-model-platform/actions/workflows/pipeline.yml)
 
 > **Deployment retired, August 2026.** This platform ran for six months on
 > self-hosted Kubernetes. The hardware has been decommissioned, so there is no
@@ -30,7 +30,6 @@ about $0.50/month in cloud costs.
 - GitHub Actions CI/CD with self-hosted runner
 - MLflow experiment tracking + [model versioning/rollback](docs/model-versioning.md) via registry
 - Prometheus + Grafana [monitoring](docs/monitoring.md) with load-tested performance numbers
-- Automated AWS security scanning (Prowler), cost tracking, and billing alarms
 - Secure external access via Cloudflare Tunnel
 
 ---
