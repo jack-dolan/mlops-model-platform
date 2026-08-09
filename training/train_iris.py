@@ -2,6 +2,7 @@
 """Train an Iris classifier and save it."""
 
 import argparse
+import os
 import pickle
 from pathlib import Path
 
@@ -44,6 +45,12 @@ def main():
         "max_depth": args.max_depth,
         "random_state": args.random_state,
     }
+
+    # MLflow 3 removed the implicit ./mlruns file-store fallback and raises
+    # instead. Default to a local sqlite backend so this runs out of the box;
+    # point at a real tracking server by setting MLFLOW_TRACKING_URI.
+    if not os.environ.get("MLFLOW_TRACKING_URI"):
+        mlflow.set_tracking_uri("sqlite:///mlflow.db")
 
     # start mlflow run
     mlflow.set_experiment("iris-classifier")
