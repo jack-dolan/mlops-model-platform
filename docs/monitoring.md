@@ -31,7 +31,7 @@ Thresholds are based on load test baselines — normal p95 latency is ~300ms (mo
 
 ## Load Test Results
 
-Tested with [hey](https://github.com/rakyll/hey) against the production `/predict` endpoint, going through Cloudflare Tunnel. 2 pod replicas on a Mac Mini M4.
+Tested with [hey](https://github.com/rakyll/hey) against the production `/predict` endpoint, going through Cloudflare Tunnel. 2 pod replicas on a small Apple Silicon host.
 
 | Concurrency | Throughput | p50 | p95 | p99 | Errors |
 |-------------|-----------|-----|-----|-----|--------|

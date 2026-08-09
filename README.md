@@ -27,7 +27,7 @@ about $0.50/month in cloud costs.
 - FastAPI model serving API with health checks and metrics
 - Docker containerization with multi-stage builds
 - Kubernetes (k3s) deployment with Kustomize overlays
-- GitHub Actions CI/CD with self-hosted runner
+- GitHub Actions CI (lint, type-check, train, test) on every push
 - MLflow experiment tracking + [model versioning/rollback](docs/model-versioning.md) via registry
 - Prometheus + Grafana [monitoring](docs/monitoring.md) with load-tested performance numbers
 - Secure external access via Cloudflare Tunnel
@@ -60,11 +60,7 @@ about $0.50/month in cloud costs.
 │  │     (secrets)       │  │   │  │   (your domain)     │  │   │  │  • GitHub Runner    │  │
 │  └─────────────────────┘  │   │  └─────────────────────┘  │   │  └─────────────────────┘  │
 │                           │   │                           │   │                           │
-└───────────────────────────┘   └───────────────────────────┘   │  Hardware:                │
-                                                                │  • Mac Mini M4            │
-                                                                │  • 16GB RAM               │
-                                                                │  • 256GB SSD              │
-                                                                └───────────────────────────┘
+└───────────────────────────┘   └───────────────────────────┘   └───────────────────────────┘
 ```
 
 ---
@@ -149,13 +145,11 @@ docker run -p 8000:8000 mlops-model:latest
                            │                     │                     │
                            ▼                     ▼                     ▼
                       lint, test,          Push to GHCR        kubectl apply
-                      type check                               to k3s cluster
+                      type check           (retired)           (retired)
 ```
 
-- **CI:** Runs on every push and PR (lint, format, type check, test)
-- **Build:** Runs on push to main. Builds for both `linux/amd64` and `linux/arm64` (dev machine is x86, Mac Mini is Apple Silicon) and pushes to GHCR.
-- **Deploy:** Self-hosted runner deploys to staging automatically, production requires approval. Prunes unused container images from the node after each deploy.
-- **Cleanup:** After each build, old untagged image versions are pruned from GHCR to keep storage in check.
+- **CI:** runs on every push and pull request — lint, format check, type check, train the model, run the test suite. **This is the only stage that still runs.**
+- **Build, deploy and cleanup** published a multi-arch image to GHCR and applied the Kustomize manifests to the cluster via a self-hosted runner. All three were removed in August 2026 when the cluster was decommissioned; the runner they needed no longer exists.
 
 See [docs/workflow.md](docs/workflow.md) for the full end-to-end walkthrough.
 
@@ -187,6 +181,8 @@ mlops-model-platform/
 
 ## Infrastructure Costs
 
+What it cost while it ran:
+
 | Component | Monthly Cost |
 |-----------|-------------|
 | AWS S3 (MLflow artifacts) | < $1 |
@@ -195,7 +191,9 @@ mlops-model-platform/
 | GitHub Container Registry | $0 |
 | **Total** | **< $1/month** |
 
-Plus one-time: Mac Mini M4 (about $600), domain (about $12/year)
+Plus one-time hardware (a small Apple Silicon desktop) and a domain at about
+$12/year. Every one of these resources has since been deleted, so the running
+cost today is $0.
 
 ---
 
@@ -238,7 +236,7 @@ mypy src/                           # type check
 - [x] FastAPI model serving
 - [x] Docker containerization
 - [x] k3s deployment
-- [x] CI/CD pipeline with self-hosted runner
+- [x] CI/CD pipeline with self-hosted runner *(deployment stages retired 2026-08)*
 - [x] MLflow integration with S3
 - [x] Prometheus + Grafana monitoring
 - [x] Cloudflare Tunnel for external access

@@ -20,7 +20,7 @@ You can view the run at [mlflow.example.com](https://mlflow.example.com). Compar
 
 **3. CI runs automatically.** GitHub Actions lints the code, runs the test suite, and type-checks everything. If anything fails, the push is flagged before it goes further. **This is the one step that still runs today** — the deployment steps around it are retired.
 
-**4. Build and deploy.** On merge to main, CI builds a Docker image for both amd64 and arm64 and pushes it to GitHub Container Registry. The self-hosted runner on the Mac Mini pulls the arm64 image and deploys to staging automatically. Production requires manual approval.
+**4. Build and deploy.** *(Retired August 2026.)* On merge to main, CI built a multi-arch Docker image, pushed it to GitHub Container Registry, and a self-hosted runner deployed it to staging automatically, with production behind a manual approval.
 
 **5. Monitor.** Grafana shows request latency, error rates, and prediction distribution in real time. If the model starts returning unusual predictions or latency spikes, you'll see it.
 
