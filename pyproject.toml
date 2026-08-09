@@ -40,7 +40,7 @@ where = ["src"]
 
 # ruff - linter
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 88
 src = ["src", "tests"]
 
@@ -64,7 +64,7 @@ known-first-party = ["src"]
 # black - formatter
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+target-version = ["py312"]
 
 # mypy - type checking
 [tool.mypy]
